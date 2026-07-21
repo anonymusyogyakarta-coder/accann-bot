@@ -1,4 +1,3 @@
-cat > fitur/generate.js << 'EOF'
 const axios = require("axios");
 
 async function handle(sock, msg, prompt) {
@@ -15,4 +14,3 @@ async function handle(sock, msg, prompt) {
 }
 
 module.exports = { handle };
-EOF
