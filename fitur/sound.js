@@ -1,4 +1,3 @@
-cat > fitur/sound.js << 'EOF'
 const { downloadContentFromMessage } = require("@whiskeysockets/baileys");
 const { execSync } = require("child_process");
 const fs = require("fs");
@@ -22,4 +21,3 @@ async function handle(sock, msg) {
 }
 
 module.exports = { handle };
-EOF
