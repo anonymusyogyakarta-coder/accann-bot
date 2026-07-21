@@ -1,4 +1,3 @@
-cat > fitur/tikdl.js << 'EOF'
 const axios = require("axios");
 
 async function handle(sock, msg, url) {
@@ -16,4 +15,3 @@ async function handle(sock, msg, url) {
 }
 
 module.exports = { handle };
-EOF
