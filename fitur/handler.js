@@ -72,4 +72,3 @@ async function handleCommand(sock, msg, text, config) {
 }
 
 module.exports = { handleCommand };
-EOF
