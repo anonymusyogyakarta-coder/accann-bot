@@ -1,4 +1,3 @@
-cat > fitur/handler.js << 'EOF'
 const ai = require("./ai");
 const sticker = require("./sticker");
 const sound = require("./sound");
