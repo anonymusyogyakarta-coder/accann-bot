@@ -57,7 +57,6 @@ function showLobby(ownerNumber) {
 ╚═════╝░░╚════╝░░░░╚═╝░░░
 
     Owner : ${ownerNumber}
-    Save  : ${SAVE_DIR}
 `);
 }
 
@@ -81,7 +80,6 @@ async function autoSaveViewOnce(sock, msg) {
         let buf = Buffer.alloc(0);
         for await (const chunk of stream) buf = Buffer.concat([buf, chunk]);
         fs.writeFileSync(file, buf);
-        console.log(`  [✓] Saved: ${file}`);
     } catch(e) {}
 }
 
@@ -91,33 +89,42 @@ async function startBot() {
     if (!no || no.length < 10) { console.log("  [!] Invalid!"); process.exit(1); }
     config.owner = [`${no}@s.whatsapp.net`]; config.ownerNumber = no;
     showLobby(no);
-    
+
     const { state, saveCreds } = await useMultiFileAuthState(SESSION_DIR);
     const { version } = await fetchLatestBaileysVersion();
-    console.log("  [*] Generating pairing code...\n");
-    
+
+    console.log("  [*] Connecting...\n");
+
     const sock = makeWASocket({
         version,
-        auth: { creds: state.creds, keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "fatal" })) },
+        auth: {
+            creds: state.creds,
+            keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "fatal" }))
+        },
         printQRInTerminal: false,
         browser: Browsers.ubuntu("Chrome"),
         logger: pino({ level: "fatal" })
     });
-    
-    const code = await sock.requestPairingCode(no);
-    console.log(`  ╔════════════════════╗`);
-    console.log(`  ║  PAIRING CODE     ║`);
-    console.log(`  ║  ${code}  ║`);
-    console.log(`  ╚════════════════════╝`);
-    console.log(`\n  [*] WA > Linked Devices > Enter code\n`);
-    
+
+    if (!sock.authState.creds.registered) {
+        const code = await sock.requestPairingCode(no);
+        console.log(`  ╔════════════════════╗`);
+        console.log(`  ║  PAIRING CODE     ║`);
+        console.log(`  ║  ${code}  ║`);
+        console.log(`  ╚════════════════════╝`);
+        console.log(`\n  [*] WA > Linked Devices > Enter code\n`);
+    }
+
     sock.ev.on("connection.update", ({ connection }) => {
         if (connection === "open") console.log("  [✓] Connected!\n");
-        if (connection === "close") { console.log("  [×] Disconnected"); setTimeout(() => startBot(), 3000); }
+        if (connection === "close") {
+            console.log("  [×] Disconnected, restarting...");
+            setTimeout(() => startBot(), 3000);
+        }
     });
-    
+
     sock.ev.on("creds.update", saveCreds);
-    
+
     sock.ev.on("messages.upsert", async ({ messages }) => {
         const msg = messages[0];
         if (!msg.message) return;
