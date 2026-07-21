@@ -8,5 +8,5 @@ module.exports = {
     openai: process.env.OPENAI_KEY || "",
     weatherApi: process.env.WEATHER_KEY || "",
     ttsKey: process.env.TTS_KEY || "",
-    saveDir: "/storage/emulated/0/AccannBot"
+    saveDir: "./saved"
 };
