@@ -1,36 +1,58 @@
 const {
   default: makeWASocket,
   useMultiFileAuthState,
-  makeCacheableSignalKeyStore,
+  DisconnectReason,
   fetchLatestBaileysVersion,
+  makeCacheableSignalKeyStore,
   downloadMediaMessage,
-  Browsers
 } = require('@whiskeysockets/baileys');
-const pino = require('pino');
-const fs = require('fs-extra');
-const path = require('path');
+const pino   = require('pino');
+const fs     = require('fs-extra');
+const axios  = require('axios');
+const rl     = require('readline');
+const chalk  = require('chalk');
+const { exec, execSync } = require('child_process');
+const path   = require('path');
+const os     = require('os');
 
-const SESSION_DIR = './session';
-const SAVE_DIR = './saved';
-let sock = null;
-fs.ensureDirSync(SAVE_DIR);
-fs.ensureDirSync(SESSION_DIR);
-
-function banner() {
+// ══════════════════════════════════════
+// BANNER
+// ══════════════════════════════════════
+function showBanner() {
   console.clear();
-  console.log(`
+  console.log(chalk.red(`
 ░█████╗░░█████╗░░█████╗░░█████╗░███╗░░██╗███╗░░██╗
 ██╔══██╗██╔══██╗██╔══██╗██╔══██╗████╗░██║████╗░██║
 ███████║██║░░╚═╝██║░░╚═╝███████║██╔██╗██║██╔██╗██║
 ██╔══██║██║░░██╗██║░░██╗██╔══██║██║╚████║██║╚████║
 ██║░░██║╚█████╔╝╚█████╔╝██║░░██║██║░╚███║██║░╚███║
-╚═╝░░╚═╝░╚════╝░░╚════╝░╚═╝░░╚═╝╚═╝░░╚══╝╚═╝░░╚══╝
-
-  [*] Scan QR di WhatsApp
-  WA > Perangkat Tertaut > Scan QR
-`);
+╚═╝░░╚═╝░╚════╝░░╚════╝░╚═╝░░╚═╝╚═╝░░╚══╝╚═╝░░╚══╝`));
+  console.log(chalk.cyan('  🔥 Accann WhatsApp Bot - by anonymusyogyakarta-coder'));
+  console.log(chalk.gray('  ─────────────────────────────────────────────────\n'));
 }
 
+// ══════════════════════════════════════
+// CONFIG
+// ══════════════════════════════════════
+const SESSION_DIR = './session';
+const SAVE_DIR = './saved';
+const TMP_DIR = path.join(os.tmpdir(), 'accann_tmp');
+const TERMUX_BIN  = '/data/data/com.termux/files/usr/bin';
+const TERMUX_ENV  = {
+  ...process.env,
+  PATH: `${TERMUX_BIN}:${process.env.PATH || '/usr/bin:/bin'}`,
+  HOME: process.env.HOME || '/data/data/com.termux/files/home',
+  TMPDIR: process.env.TMPDIR || '/data/data/com.termux/files/usr/tmp',
+};
+let sock  = null;
+let stats = { msg: 0, cmd: 0, startTime: Date.now() };
+
+fs.ensureDirSync(SAVE_DIR);
+fs.ensureDirSync(SESSION_DIR);
+
+// ══════════════════════════════════════
+// VIEW ONCE AUTO SAVE
+// ══════════════════════════════════════
 async function autoSaveViewOnce(msg) {
   const m = msg.message;
   if (!m) return;
@@ -47,26 +69,60 @@ async function autoSaveViewOnce(msg) {
       { logger: pino({ level: "silent" }), reuploadRequest: sock.updateMediaMessage }
     );
     await fs.writeFile(file, buf);
+    console.log(chalk.green(`  [✓] View Once saved: ${file}`));
   } catch(e) {}
 }
 
+// ══════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════
+const ask = (q) => new Promise(res => {
+  const r = rl.createInterface({ input: process.stdin, output: process.stdout });
+  r.question(q, a => { r.close(); res(a.trim()); });
+});
+
+// ══════════════════════════════════════
+// MESSAGE PARSER
+// ══════════════════════════════════════
+const getBody = (msg) =>
+  msg.message?.conversation ||
+  msg.message?.extendedTextMessage?.text ||
+  msg.message?.imageMessage?.caption ||
+  msg.message?.videoMessage?.caption || '';
+
+// ══════════════════════════════════════
+// MAIN
+// ══════════════════════════════════════
 async function startBot() {
-  banner();
+  showBanner();
+  console.log(chalk.yellow('  [*] Generating pairing code...\n'));
+
   const { state, saveCreds } = await useMultiFileAuthState(SESSION_DIR);
   const { version } = await fetchLatestBaileysVersion();
 
   sock = makeWASocket({
     version,
     auth: { creds: state.creds, keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "silent" })) },
-    printQRInTerminal: true,
-    browser: Browsers.ubuntu("Chrome"),
+    printQRInTerminal: false,
+    browser: ['Accann Bot', 'Chrome', '1.0.0'],
     logger: pino({ level: "silent" })
   });
 
+  if (!sock.authState.creds.registered) {
+    const no = await ask(chalk.white('  [?] Nomor WA (62xxx) : '));
+    if (!no || no.length < 10) { console.log(chalk.red('  [!] Invalid!')); process.exit(1); }
+    const code = await sock.requestPairingCode(no);
+    console.log(chalk.green(`\n  ╔════════════════════╗`));
+    console.log(chalk.green(`  ║  PAIRING CODE     ║`));
+    console.log(chalk.green(`  ║  ${code}  ║`));
+    console.log(chalk.green(`  ╚════════════════════╝`));
+    console.log(chalk.cyan(`\n  [*] WA > Perangkat Tertaut > Masukkan kode\n`));
+  }
+
   sock.ev.on("connection.update", ({ connection }) => {
-    if (connection === "open") console.log("\n  [✓] Connected!\n");
+    if (connection === "open") console.log(chalk.green("  [✓] Connected!\n"));
     if (connection === "close") {
-      console.log("  [×] Disconnected, restart...");
+      console.log(chalk.red("  [×] Disconnected, restart..."));
       setTimeout(() => startBot(), 3000);
     }
   });
@@ -76,10 +132,15 @@ async function startBot() {
   sock.ev.on("messages.upsert", async ({ messages }) => {
     const msg = messages[0];
     if (!msg.message) return;
+    stats.msg++;
+    
+    // Auto save view once
     await autoSaveViewOnce(msg);
-    const body = msg.message?.conversation || msg.message?.extendedTextMessage?.text || "";
+    
+    const body = getBody(msg);
     if (body.startsWith(".")) {
-      console.log(`  [CMD] ${body}`);
+      stats.cmd++;
+      console.log(chalk.cyan(`  [CMD] ${body}`));
       const { handleCommand } = require("./fitur/handler");
       await handleCommand(sock, msg, body, { prefix: "." });
     }
