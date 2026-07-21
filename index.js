@@ -14,7 +14,7 @@ const config = require("./config");
 const { handleCommand } = require("./fitur/handler");
 
 const SESSION_DIR = "./session";
-const SAVE_DIR = config.saveDir || "/storage/emulated/0/AccannBot";
+const SAVE_DIR = config.saveDir || "./saved";
 
 if (!fs.existsSync(SAVE_DIR)) fs.mkdirSync(SAVE_DIR, { recursive: true });
 
