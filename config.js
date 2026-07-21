@@ -1,4 +1,3 @@
-cat > config.js << 'EOF'
 require('dotenv').config();
 
 module.exports = {
@@ -11,4 +10,3 @@ module.exports = {
     ttsKey: process.env.TTS_KEY || "",
     saveDir: "/storage/emulated/0/AccannBot"
 };
-EOF
