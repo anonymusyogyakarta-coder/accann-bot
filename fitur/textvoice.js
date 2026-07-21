@@ -1,4 +1,3 @@
-cat > fitur/textvoice.js << 'EOF'
 const axios = require("axios");
 const config = require("../config");
 
@@ -21,4 +20,3 @@ async function handle(sock, msg) {
 }
 
 module.exports = { handle };
-EOF
