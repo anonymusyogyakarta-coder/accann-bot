@@ -1,4 +1,3 @@
-cat > fitur/cuaca.js << 'EOF'
 const axios = require("axios");
 const config = require("../config");
 
@@ -14,4 +13,3 @@ async function handle(sock, msg, daerah) {
 }
 
 module.exports = { handle };
-EOF
