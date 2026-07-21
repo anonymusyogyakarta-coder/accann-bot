@@ -1,4 +1,3 @@
-cat > fitur/ai.js << 'EOF'
 const axios = require("axios");
 const config = require("../config");
 
@@ -18,4 +17,3 @@ async function handle(sock, msg, prompt) {
 }
 
 module.exports = { handle };
-EOF
