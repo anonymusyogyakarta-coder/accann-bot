@@ -1,4 +1,3 @@
-cat > fitur/neko.js << 'EOF'
 const axios = require("axios");
 
 async function handle(sock, msg) {
@@ -11,4 +10,3 @@ async function handle(sock, msg) {
 }
 
 module.exports = { handle };
-EOF
