@@ -1,4 +1,3 @@
-cat > fitur/gombal.js << 'EOF'
 const gombalan = [
     "Kamu suka nge-charge HP? Soalnya kamu nge-charge hati aku.",
     "Aku gak butuh Google, cukup kamu yang selalu punya jawabannya.",
@@ -12,4 +11,3 @@ async function handle(sock, msg) {
 }
 
 module.exports = { handle };
-EOF
